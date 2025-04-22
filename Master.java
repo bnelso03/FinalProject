@@ -14,8 +14,7 @@ public class Master {
 		Utility utility;
 
 		// Inputs
-		File file = new File(args[0]);
-		int input = readFile();
+		
 		
 		//The server program starts by creating a new ServerSocket object to list on a specific port. 
 		// When we run this server, pick a port that is not already in use or dedicated to some other service. 
@@ -67,20 +66,4 @@ public class Master {
 		
 		
 	}
-
-	public static int[] readFile(File inFile) throws IOException{
-		BufferedReader br = new BufferedReader(new FileReader(inFile));
-		int output[] = new int[(int) inFile.length()];
-		String line = br.readLine();
-		while (line != null) {
-
-		}
-
-
-
-			
-		return null;
-	}
-
-
 }
