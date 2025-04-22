@@ -3,9 +3,11 @@ import java.net.Socket;
 
 public class Utility extends Thread {
     private Socket utility;
+	private boolean locked; // Available or Locked
 
 	public Utility(Socket utility) {
 		this.utility = utility;
+		this.locked = false;
 	}
 
 	public static void main(String[] args) {
