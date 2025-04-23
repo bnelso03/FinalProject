@@ -25,9 +25,9 @@ public class Utility extends Thread {
 		this.IPAddress = "0"; // change to pooling later?
 		this.chosenAlgorithm = chosenAlgorithm;
 
-		data = new int[listData.size()];
+		this.data = new int[listData.size()];
   		for(int i = 0; i < data.length; i++) { // converts data from list to int[]
-    		data[i] = listData.get(i);
+    		this.data[i] = listData.get(i);
 		}
 		
 	}
@@ -46,24 +46,12 @@ public class Utility extends Thread {
 
 			Socket utility = new Socket(host, port);// creates a new socket object and we are naming it utility
 			
-			state = "LOCKED"; // change state when running
-			
-			//Send data through the socket to the server, so the ClientTester need to write using PrintWriter
+			//Send data through the socket to the server, so the Utility needs to write using PrintWriter
 			PrintWriter pw = new PrintWriter(utility.getOutputStream(), true);
-			System.out.println("Sending message.....");
-
-
-			// Sort data according to assigned algorithm
-			data = sortData(data);
+			System.out.println("Sending message.....");			
+			pw.println("Utility finished");
+			utility.close(); // free up socket
 			
-			// sum first and last 5 nums of sorted data
-			int result = sumSortedData(data);
-
-			
-//			pw.println("Client finished");
-			
-			
-
 		} catch (Exception ex) {
 
 			ex.printStackTrace();
@@ -77,6 +65,22 @@ public class Utility extends Thread {
 		 * 
 		 * 
 		 */
+	}
+
+	@Override
+	public void run() { // Thread task
+		try {
+			this.state = "LOCKED"; // change state when running
+			// Sort data according to assigned algorithm
+			int[] sortedData = sortData(data);
+			// sum first and last 5 nums of sorted data
+			int result = sumSortedData(sortedData);
+			System.out.println(result); // send this back to master
+			this.state = "AVAILABLE"; // unlock servre when finished
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 
 	}
 
@@ -111,7 +115,7 @@ public class Utility extends Thread {
 				sum += data[i];
 			}
 		}
-		for (int i = (length - 5); i < 5; i++) { // Sum the last 5 entries
+		for (int i = length - 5; i < length; i++) { // Sum the last 5 entries
 			sum += data[i];
 		}
 		return sum;
@@ -119,7 +123,7 @@ public class Utility extends Thread {
 
 	private static void bubbleSort(int[] data) { // Bubble Sort
 		int length = data.length;
-		for (int i = 0; i < length; i++) {
+		for (int i = 0; i < length - 1; i++) {
 			for (int j = 0; j < length - i; j++) {
 				int temp = data[j];
 				data[j] = data[j+1];

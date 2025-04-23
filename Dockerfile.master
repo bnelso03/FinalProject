@@ -1,0 +1,10 @@
+FROM opensuse/leap:15.6
+
+RUN zypper install -y java-21-openjdk java-21-openjdk-devel
+
+COPY Master.java /Master.java
+COPY Utility.java /Utility.java
+
+RUN javac Master.java
+
+CMD ["java", "Master", "bubble", ""]
