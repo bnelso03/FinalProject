@@ -45,18 +45,11 @@ public class Master {
 				System.out.println(numsPerServer);
 				// more
 
-				// Start threads
+				// Start threads - more later
 				t.start();
-
-
-
-
-				
-				t.start(); // Utility Runs
 
 				
 			} catch (Exception ex) {
-				
 				//server.close();
 				ex.printStackTrace();
 			} finally {
