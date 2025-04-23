@@ -1,5 +1,7 @@
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.List;
 
 public class Utility extends Thread {
     private Socket utility;
@@ -7,8 +9,8 @@ public class Utility extends Thread {
 	private String IPAddress;
 	//private BufferedReader in;
 	private PrintWriter output;
-	private String chosenAlgorithm;
-	private int[] data;
+	private static String chosenAlgorithm;
+	private static int[] data;
 
 	public Utility(Socket utility) {
 		this.utility = utility;
@@ -17,11 +19,16 @@ public class Utility extends Thread {
 		
 	}
 
-	public Utility(Socket utility, String chosenAlgorithm) {
+	public Utility(Socket utility, String chosenAlgorithm, List<Integer> listData) {
 		this.utility = utility;
 		this.state = "AVAILABLE"; // Server starts available
 		this.IPAddress = "0"; // change to pooling later?
 		this.chosenAlgorithm = chosenAlgorithm;
+
+		data = new int[listData.size()];
+  		for(int i = 0; i < data.length; i++) { // converts data from list to int[]
+    		data[i] = listData.get(i);
+		}
 		
 	}
 
@@ -100,7 +107,7 @@ public class Utility extends Thread {
 		int sum = 0;
 		int length = data.length;
 		for (int i = 0; i < 5; i++) { // Sum the first 5 entries
-			if (i < n) {
+			if (i < length) {
 				sum += data[i];
 			}
 		}
@@ -110,7 +117,7 @@ public class Utility extends Thread {
 		return sum;
 	}
 
-	private void bubbleSort(int[] data) { // Bubble Sort
+	private static void bubbleSort(int[] data) { // Bubble Sort
 		int length = data.length;
 		for (int i = 0; i < length; i++) {
 			for (int j = 0; j < length - i; j++) {
