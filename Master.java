@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Master {
 
@@ -13,7 +14,9 @@ public class Master {
 		int port = 32005; 
 		Utility utility;
 
-		// Inputs
+		File file = new File(args[0]);
+        List<Integer> input = readFile(file);
+		String sortChoice = args[1]; // swap with args 0
 		
 		
 		//The server program starts by creating a new ServerSocket object to list on a specific port. 
@@ -24,24 +27,31 @@ public class Master {
 		//The constructor for ServerSocket throws an exception which you can implement a try catch or simply throws IOException
 		//The reason being that perhaps that port is already in use. 
 		
-		System.out.println("Server is starting.....");
+		System.out.println("Master server is starting.....");
 		
 		while(true) {
 			
 			try {
 				//If the server successfully binds to its port,then the ServerSocket object is successfully created and the server
-				// continues to the next step-accepting a connection from a client 
-				//The accept method waits until a client starts up and requests a connection on the host. 
-				utility = new Utility(server.accept());
+				// continues to the next step -> accepting a connection from a client 
 				
+				// Startup
+				utility = new Utility(server.accept(), sortChoice); //The accept method waits until a client starts up and requests a connection on the host. 
 				Thread t = new Thread(utility);
-				
 				String message = "Thread " + t.getName() + " has been assigned to this client";
-
 				availableServers.add(utility); // Add utility to available list
-				
 				System.out.println(message);
 				
+				// Divide data
+				int numsPerServer = input.size() / availableServers.size();
+				System.out.println(numsPerServer);
+				// more
+
+				// Send data and choice of algorithm?
+
+
+
+
 				
 				t.start(); // Utility Runs
 
@@ -65,5 +75,24 @@ public class Master {
 		
 		
 		
+	}
+
+	private static void sendHeartbeat() { // incomplete
+		for (int i = 0; i < availableServers.size(); i++) {
+			if (availableServers.get(i).getServerState().equals("AVAILABLE")) {
+
+			}
+		}
+	}
+
+	public static List<Integer> readFile(File inFile) throws IOException{ // temporary
+		BufferedReader br = new BufferedReader(new FileReader(inFile));
+		List<Integer> output = new ArrayList<Integer>();
+		String line;
+		while ((line = br.readLine()) != null) {
+			int num = Integer.parseInt(line);
+			output.add(num);
+		}
+		return output;
 	}
 }

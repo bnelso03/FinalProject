@@ -1,20 +1,25 @@
 public class Client {
 
-    File file = new File(args[0]);
-	int input = readFile();
+    
+
+
+    public static void main(String args[]) {
+        File file = new File(args[0]);
+        int input = readFile();
+    }
+
+
+
 
     public static int[] readFile(File inFile) throws IOException{
 		BufferedReader br = new BufferedReader(new FileReader(inFile));
-		int output[] = new int[(int) inFile.length()];
-		String line = br.readLine();
-		while (line != null) {
-
+		List<Integer> output = new ArrayList<Integer>();
+		String line;
+		while (line = br.readLine() != null) {
+			int num = Integer.parseInt(line);
+			output.add(num);
 		}
-
-
-
-			
-		return null;
+		return output;
 	}
     
 }
