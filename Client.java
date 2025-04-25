@@ -2,54 +2,54 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class Client {
+public class Client extends Thread {
     private Socket client;
-    private PrintWriter out;
 
-    public Client(String host, int port) {
-
-        try {
-            client = new Socket(host, port);
-            System.out.println("Hello this is Client");
-            out = new PrintWriter(client.getOutputStream(), true);
-        } catch (IOException ex) {
-            System.out.println("Cant Connect to Host");
-            ex.printStackTrace();
-        }
+    public Client(Socket client) throws IOException {
+        this.client = client;
     }
 
-    public static void main(String args[]) {
-        File file = new File(args[0]);
-        
+    public static void main(String args[]) throws ClassNotFoundException {
+        File file = new File(args[0]); // Input file
+        String sort = args[1];
         String host = "localhost";
         int port = 32005;
         try{
-            List<Integer> input = readFile(file);
-            System.out.println("Read numbers from file: " + input);
-            Client client = new Client(host,port);
-            client.sendFile(input);
-            System.out.println("Bye Master Server");
+            // Create a new socket
+            Socket socket = new Socket(host, port);
+
+            // Send data through socket
+            System.out.println("Sending message through socket...");
+            List<Integer> data = readFile(file);
+            sendTask(socket, data, sort);
+
+            // Retreive result from master
+            ObjectInputStream result = new ObjectInputStream(socket.getInputStream());
+            System.out.println((int) result.readObject());
+
         }catch(IOException ex){
-            System.out.println("File not found");
             ex.printStackTrace();
         }
     }
 
-    public void sendFile(List<Integer> nums) {
-        for (Integer num : nums) {
-            out.println(num);
-            System.out.println("Sending file finished");
-        }
+    public static void sendTask(Socket socket, List<Integer> data, String sort) throws IOException { // sends the List object over to port
+        ObjectOutputStream dataOut = new ObjectOutputStream(socket.getOutputStream());
+        // Create data packet
+        HashMap<String, Object> packet = new HashMap<String,Object>();
+        packet.put("sort", sort); // alg sort choice 
+        packet.put("data", data); // data to sort
+        dataOut.writeObject(packet); // data packet to be sorted
+        dataOut.flush();
     }
 
-    public static List<Integer> readFile(File inFile) throws IOException { // temporary
-        BufferedReader br = new BufferedReader(new FileReader(inFile));
-        List<Integer> output = new ArrayList<Integer>();
-        String line;
-        while ((line = br.readLine()) != null) {
-            int num = Integer.parseInt(line);
-            output.add(num);
-        }
-        return output;
-    }
+    public static List<Integer> readFile(File inFile) throws IOException { // Parses data from file into a list of integers
+		BufferedReader br = new BufferedReader(new FileReader(inFile));
+		List<Integer> data = new ArrayList<Integer>();
+		String line;
+		while ((line = br.readLine()) != null) {
+			int num = Integer.parseInt(line);
+			data.add(num);
+		}
+        return data;
+	}
 }
