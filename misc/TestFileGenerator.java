@@ -6,7 +6,7 @@ public class TestFileGenerator {
     public static void main(String[] args) {
         // Define parameters
         int numberOfNumbers = 30000000; // 10 million numbers
-        String fileName = "testData.txt";
+        String fileName = "res/testData.txt";
         Random random = new Random();
         
         System.out.println("Starting to generate " + numberOfNumbers + " numbers...");
