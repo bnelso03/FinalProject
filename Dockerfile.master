@@ -1,0 +1,6 @@
+FROM openjdk:17
+WORKDIR /app
+COPY master/Master.java .
+RUN javac Master.java
+EXPOSE 32005
+ENTRYPOINT ["java", "Master", "5000"]

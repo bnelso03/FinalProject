@@ -19,7 +19,7 @@ public class Client {
     public static void main(String args[]) throws ClassNotFoundException {
         File file = new File(args[0]); // Input file
         String sort = args[1];
-        String host = "localhost";
+        String host = "localhost"; 
         int port = 32005;
 
         try{

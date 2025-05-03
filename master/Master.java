@@ -1,6 +1,8 @@
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -25,9 +27,11 @@ public class Master implements Runnable {
 	private List<Integer> data; // Data given by the client
 	private List<int[]> chunks;
 	private List<Integer> sums = new ArrayList<Integer>();
+	private static File log = new File("log.txt");
+	private static PrintWriter logWriter;
 
 	private static final int PORT = 32005;
-	private static final int CHUNK_SIZE = 10_000_000; // 10 milli 🤑
+	private static final int MAX_CHUNK_SIZE = 10_000_000; // Maximum chunk size
 	private static int heartbeatTimeoutPeriod;
 
 	private static List<Integer> utilityPorts = Arrays.asList(32006, 32007, 32008);
@@ -43,21 +47,23 @@ public class Master implements Runnable {
 	}
 
 	public static void main(String[] args) throws IOException {
+		logWriter = new PrintWriter(log);
+		logWriter.println("hello");
 		heartbeatTimeoutPeriod = 5000;
 		try {
 			heartbeatTimeoutPeriod = Integer.parseInt(args[0]);
-			System.out.println("[MASTER] Heartbeat timeout period set to: " + heartbeatTimeoutPeriod);
+			logWriter.println("[MASTER] Heartbeat timeout period set to: " + heartbeatTimeoutPeriod);
 		} catch (Exception e) {
-			System.out.println("[MASTER] Invalid heartbeat timeout specified. Using default: 5000");
+			logWriter.println("[MASTER] Invalid heartbeat timeout specified. Using default: 5000");
 		} 
 
 		System.out.println("[MASTER] Master server is starting...");
 		ServerSocket serverSocket = new ServerSocket(PORT);
-		System.out.println("[MASTER] Master server listening on: " + PORT);
+		logWriter.println("[MASTER] Master server listening on: " + PORT);
 
 		while (true) {
 			Socket clientSocket = serverSocket.accept();
-			System.out.println("[MASTER] Client connected: " + clientSocket.getInetAddress());
+			logWriter.println("[MASTER] Client connected: " + clientSocket.getInetAddress());
 
 			Thread t = new Thread(new Master(clientSocket, heartbeatTimeoutPeriod));
 			t.start();
@@ -71,11 +77,11 @@ public class Master implements Runnable {
 			this.chunks = new ArrayList<int[]>();
 			this.sums = new ArrayList<Integer>();
 
-			System.out.println("[MASTER] Finding available utility servers...");
+			logWriter.println("[MASTER] Finding available utility servers...");
 			this.activeUtilityPorts = findAvailableUtilities();
 
 			if (this.activeUtilityPorts.isEmpty()) {
-				System.out.println("[MASTER] No utility servers available.");
+				logWriter.println("[MASTER] No utility servers available.");
 				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
 				out.writeObject("[MASTER] Error: No utility servers available");
 				out.flush();
@@ -83,11 +89,11 @@ public class Master implements Runnable {
 				return;
 			}
 
-			System.out.println("[MASTER] Sending heartbeat...");
+			logWriter.println("[MASTER] Sending heartbeat...");
 			List<Integer> availableServers = heartbeat(heartbeatTimeoutPeriod);
 
 			if (availableServers.isEmpty()) {
-				System.out.println("[MASTER] No utility servers available after heartbeat.");
+				logWriter.println("[MASTER] No utility servers available after heartbeat.");
 				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
 				out.writeObject("[MASTER] Error: No utility servers available");
 				out.flush();
@@ -100,12 +106,12 @@ public class Master implements Runnable {
 			System.out.println("[MASTER] Reading job from client...");
 			readJob();
 
-			System.out.println("[MASTER] Partitioning chunks...");
+			logWriter.println("[MASTER] Partitioning chunks...");
 			chunks = chunkData(data);
 
-			System.out.println("[MASTER] Sending chunks...");
+			logWriter.println("[MASTER] Sending chunks...");
 			sendAndReceiveData(chunks, availableServers);
-			System.out.println("[MASTER] Results collected!");
+			logWriter.println("[MASTER] Results collected!");
 
 			System.out.println("[MASTER] Sending results to client...");
 			sendResultToClient();
@@ -121,18 +127,18 @@ public class Master implements Runnable {
 
 		for (int port : utilityPorts) {
 			try {
-				System.out.println("[MASTER] Checking utility at port " + port);
+				logWriter.println("[MASTER] Checking utility at port " + port);
 				Socket socket = new Socket();
 				socket.connect(new InetSocketAddress("localhost", port), 2000);
-				System.out.println("[MASTER] Connected to utility at port " + port);
+				logWriter.println("[MASTER] Connected to utility at port " + port);
 
 				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-				System.out.println("[MASTER] Created output stream for port " + port);
+				logWriter.println("[MASTER] Created output stream for port " + port);
 				ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-				System.out.println("[MASTER] Created input stream for port " + port);
+				logWriter.println("[MASTER] Created input stream for port " + port);
 
 				out.writeObject("HEARTBEAT");
-				System.out.println("[MASTER] Sent HEARTBEAT to port " + port);
+				logWriter.println("[MASTER] Sent HEARTBEAT to port " + port);
 				out.flush();
 
 				String response = (String) in.readObject();
@@ -140,12 +146,12 @@ public class Master implements Runnable {
 
 				if (response.equals("AVAILABLE")) {
 					available.add(port);
-					System.out.println("[MASTER] Utility at port " + port + " is available");
+					logWriter.println("[MASTER] Utility at port " + port + " is available");
 				} else {
-					System.out.println("[MASTER] Utility at port " + port + " is busy");
+					logWriter.println("[MASTER] Utility at port " + port + " is busy");
 				}
 			} catch (Exception e) {
-				System.out.println("[MASTER] Utility at port " + port + " is not responding.");
+				logWriter.println("[MASTER] Utility at port " + port + " is not responding.");
 			}
 		}
 		return available;
@@ -157,7 +163,7 @@ public class Master implements Runnable {
 
 		for (int port : activeUtilityPorts) {
 			try {
-				System.out.println("[MASTER] Sending heartbeat to utility at port " + port);
+				logWriter.println("[MASTER] Sending heartbeat to utility at port " + port);
 				Socket socket = new Socket();
 
 				socket.connect(new InetSocketAddress("localhost", port), 2000);
@@ -175,19 +181,19 @@ public class Master implements Runnable {
 
 				if (response.equals("AVAILABLE")) {
 					availableUtilities.add(port);
-					System.out.println("[MASTER] Utility at port " + port + " is AVAILABLE");;
+					logWriter.println("[MASTER] Utility at port " + port + " is AVAILABLE");;
 				} else {
-					System.out.println("[MASTER] Utility at port " + port + " is not responding");
+					logWriter.println("[MASTER] Utility at port " + port + " is not responding");
 				}
 			} catch (Exception e) {
-				System.out.println("[MASTER] Utility at port " + port + " did not responding within time");
+				logWriter.println("[MASTER] Utility at port " + port + " did not responding within time");
 				nonRespondingPorts.add(port);
 			}
 		}
 
 		activeUtilityPorts.removeAll(nonRespondingPorts);
 		if (!nonRespondingPorts.isEmpty()) {
-			System.out.println("Dropped " + nonRespondingPorts.size() + " unresponsive utilities");
+			logWriter.println("Dropped " + nonRespondingPorts.size() + " unresponsive utilities");
 		}
 
 		return availableUtilities;
@@ -201,7 +207,7 @@ public class Master implements Runnable {
 		sortChoice = (String) packet.get("sort");
 
 		int[] dataArr = (int[]) packet.get("data");
-		System.out.println("[MASTER] Received " + dataArr.length + " numbers from client");
+		logWriter.println("[MASTER] Received " + dataArr.length + " numbers from client");
 		data = new ArrayList<>();
 		for (int i = 0; i < dataArr.length; i++) {
 			data.add(dataArr[i]);
@@ -212,7 +218,7 @@ public class Master implements Runnable {
 		for (Integer num : data) {
 			count++;
 			if (count % 100000 == 0) {
-				System.out.println("[MASTER] Read " + count + " integers so far from " + clientSocket.getInetAddress());
+				logWriter.println("[MASTER] Read " + count + " integers so far from " + clientSocket.getInetAddress());
 			}
 		}
 	}
@@ -223,7 +229,7 @@ public class Master implements Runnable {
 		int start = 0;
 
 		while (start < total) {
-			int end = Math.min(start + CHUNK_SIZE, total);
+			int end = Math.min(start + activeUtilityPorts.size(), total);
 			List<Integer> sublist = data.subList(start, end);
 
 			int[] chunk = convertList(sublist);
@@ -246,7 +252,7 @@ public class Master implements Runnable {
 	private void sendAndReceiveData(List<int[]> chunks, List<Integer> availableServers) {
 		try {
 			int utilityIndex = 0;
-			System.out.println("[MASTER] Sending " + chunks.size() + " chunks.");
+			logWriter.println("[MASTER] Sending " + chunks.size() + " chunks.");
 
 			for (int[] chunk : chunks) {
 				if (utilityIndex >= availableServers.size()) {
@@ -262,6 +268,7 @@ public class Master implements Runnable {
 					HashMap<String, Object> task = new HashMap<>();
 					task.put("sort", sortChoice);
 					task.put("data", chunk);
+					task.put("log", log);
 
 					out.writeObject(task);
 					out.flush();

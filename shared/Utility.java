@@ -21,24 +21,21 @@ public class Utility extends Thread {
 	private static String sort = "";
 	private static int[] data;
 	private static int sum = 0;
+	private static PrintWriter log;
 
 	public static void main(String[] args) throws IOException {
 
-		if (args.length < 2) {
-			System.err.println("Error, PORT and SORT must be specified");
-			return;
-		}
-
 		PORT = Integer.parseInt(args[0]);
-		sort = args[1].toLowerCase();
 
 		ServerSocket utilityServer = new ServerSocket(PORT);
 		System.out.println("Utility Server Starting...");
 		state = "AVAILABLE";
+		
 
 		while (true) {
 			try {
 				Socket masterSocket = utilityServer.accept();
+				log = new PrintWriter(masterSocket.getOutputStream()); // log printwriter
 				startWorkerThread(masterSocket);
 			} catch (Exception ex) {
 				ex.printStackTrace();

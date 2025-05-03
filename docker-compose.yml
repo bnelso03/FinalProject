@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    ports:
+      - "32005:32005"
+    depends_on:
+      - utility1
+      - utility2
+      - utility3
+
+  utility1:
+    build:
+      context: .
+      dockerfile: Dockerfile.utility
+    environment:
+      - PORT=32006
+    ports:
+      - "32006:32006"
+
+  utility2:
+    build:
+      context: .
+      dockerfile: Dockerfile.utility
+    environment:
+      - PORT=32007
+    ports:
+      - "32007:32007"
+
+  utility3:
+    build:
+      context: .
+      dockerfile: Dockerfile.utility
+    environment:
+      - PORT=32008
+    ports:
+      - "32008:32008"
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    depends_on:
+      - master
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/data
