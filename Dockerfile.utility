@@ -3,4 +3,4 @@ WORKDIR /app
 COPY utility/Utility.java .
 RUN javac Utility.java
 EXPOSE 32006
-ENTRYPOINT ["sh", "-c", "java Utility $PORT"]
+ENTRYPOINT ["java", "Utility"]

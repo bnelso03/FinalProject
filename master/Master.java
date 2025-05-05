@@ -13,7 +13,8 @@ import java.util.List;
 
 /****************************
  * 
- * Starts up waiting for client connections (also initializes with a specified time out period. )
+ * Starts up waiting for client connections (also initializes with a specified
+ * time out period. )
  * Receives numbers & sorting choice
  * Splits numbers into chunks of 10 million
  * Sends each chunk to an available Utility server
@@ -34,11 +35,11 @@ public class Master implements Runnable {
 	private static final int MAX_CHUNK_SIZE = 10_000_000; // Maximum chunk size
 	private static int heartbeatTimeoutPeriod;
 
-	private static List<Integer> utilityPorts = Arrays.asList(32006, 32007, 32008);
+	// Thread pooling? Just sort of picks from this list, if there's a running server on that port we're good.
+	private static List<Integer> utilityPorts = Arrays.asList(32006, 32007, 32008, 32009, 32010, 32011, 32012, 32013, 32014, 32015);
 	private Socket clientSocket;
 	private List<Integer> activeUtilityPorts = new ArrayList<>();
- 
-	
+
 	public Master(Socket clientSocket, int heartbeatTimeoutPeriod) {
 		this.clientSocket = clientSocket;
 		this.sums = new ArrayList<Integer>();
@@ -55,11 +56,13 @@ public class Master implements Runnable {
 			logWriter.println("[MASTER] Heartbeat timeout period set to: " + heartbeatTimeoutPeriod);
 		} catch (Exception e) {
 			logWriter.println("[MASTER] Invalid heartbeat timeout specified. Using default: 5000");
-		} 
+		}
+		logWriter.flush();
 
 		System.out.println("[MASTER] Master server is starting...");
 		ServerSocket serverSocket = new ServerSocket(PORT);
 		logWriter.println("[MASTER] Master server listening on: " + PORT);
+		logWriter.flush();
 
 		while (true) {
 			Socket clientSocket = serverSocket.accept();
@@ -71,7 +74,8 @@ public class Master implements Runnable {
 	}
 
 	@Override
-	// There's like 15 print statements here that might be a little uncessary from debugging
+	// There's like 15 print statements here that might be a little uncessary from
+	// debugging
 	public void run() {
 		try {
 			this.chunks = new ArrayList<int[]>();
@@ -117,6 +121,7 @@ public class Master implements Runnable {
 			sendResultToClient();
 
 			clientSocket.close();
+			logWriter.flush();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -125,11 +130,21 @@ public class Master implements Runnable {
 	private List<Integer> findAvailableUtilities() {
 		List<Integer> available = new ArrayList<>();
 
+		HashMap<Integer, String> utilityHostNames = new HashMap<>();
+
+		int tempPort = 32005;
+		for (int port : utilityPorts) {
+			utilityHostNames.put(tempPort, "utility" + (tempPort - 32005));
+			tempPort++;
+		}
+
 		for (int port : utilityPorts) {
 			try {
+				String hostname = utilityHostNames.get(port);
 				logWriter.println("[MASTER] Checking utility at port " + port);
+
 				Socket socket = new Socket();
-				socket.connect(new InetSocketAddress("localhost", port), 2000);
+				socket.connect(new InetSocketAddress(hostname, port), 5000);
 				logWriter.println("[MASTER] Connected to utility at port " + port);
 
 				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -150,6 +165,7 @@ public class Master implements Runnable {
 				} else {
 					logWriter.println("[MASTER] Utility at port " + port + " is busy");
 				}
+				logWriter.flush();
 			} catch (Exception e) {
 				logWriter.println("[MASTER] Utility at port " + port + " is not responding.");
 			}
@@ -161,12 +177,21 @@ public class Master implements Runnable {
 		List<Integer> availableUtilities = new ArrayList<>();
 		List<Integer> nonRespondingPorts = new ArrayList<>();
 
+		HashMap<Integer, String> utilityHostNames = new HashMap<>();
+
+		int tempPort = 32006;
+		for (int port : utilityPorts) {
+			utilityHostNames.put(tempPort, ("utility") + (tempPort - 32005));
+			tempPort++;
+		}
+
 		for (int port : activeUtilityPorts) {
 			try {
+				String hostname = utilityHostNames.get(port);
 				logWriter.println("[MASTER] Sending heartbeat to utility at port " + port);
-				Socket socket = new Socket();
 
-				socket.connect(new InetSocketAddress("localhost", port), 2000);
+				Socket socket = new Socket();
+				socket.connect(new InetSocketAddress(hostname, port), 2000);
 
 				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 				ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -181,7 +206,8 @@ public class Master implements Runnable {
 
 				if (response.equals("AVAILABLE")) {
 					availableUtilities.add(port);
-					logWriter.println("[MASTER] Utility at port " + port + " is AVAILABLE");;
+					logWriter.println("[MASTER] Utility at port " + port + " is AVAILABLE");
+					;
 				} else {
 					logWriter.println("[MASTER] Utility at port " + port + " is not responding");
 				}
@@ -199,7 +225,7 @@ public class Master implements Runnable {
 		return availableUtilities;
 	}
 
-	private void readJob() throws IOException, ClassNotFoundException { 
+	private void readJob() throws IOException, ClassNotFoundException {
 		// reads the packet
 		ObjectInputStream dataIn = new ObjectInputStream(clientSocket.getInputStream()); // from the client
 		HashMap<String, Object> packet = (HashMap<String, Object>) dataIn.readObject(); // data to be sorted
@@ -226,33 +252,43 @@ public class Master implements Runnable {
 	private List<int[]> chunkData(List<Integer> data) {
 		List<int[]> chunks = new ArrayList<>();
 		int total = data.size();
-		int start = 0;
+		int chunkSize;
 
-		while (start < total) {
-			int end = Math.min(start + activeUtilityPorts.size(), total);
-			List<Integer> sublist = data.subList(start, end);
+		if (activeUtilityPorts.size() == 0) {
+			System.err.println("[MASTER] Warning: No active utility ports.");
+			chunkSize = 1;
+		} else {
+			chunkSize = data.size() / activeUtilityPorts.size();
+			if (chunkSize == 0) {
+				chunkSize = 1;
+			}
+		}
 
-			int[] chunk = convertList(sublist);
+		for (int i = 0; i < total; i += chunkSize) {
+			int end = Math.min(i + chunkSize, total);
+			int[] chunk = new int[end - i];
+			for (int j = i; j < end; j++) {
+				chunk[j - i] = data.get(j);
+			}
 			chunks.add(chunk);
-
-			start = end;
 		}
+
 		return chunks;
-	}
-
-	private int[] convertList(List<Integer> subList) {
-		int[] chunk = new int[subList.size()];
-		for (int i = 0; i < subList.size(); i++) {
-			chunk[i] = subList.get(i);
-		}
-		return chunk;
 	}
 
 	// This maybe should be two methods
 	private void sendAndReceiveData(List<int[]> chunks, List<Integer> availableServers) {
+		int utilityIndex = 0;
 		try {
-			int utilityIndex = 0;
 			logWriter.println("[MASTER] Sending " + chunks.size() + " chunks.");
+
+			HashMap<Integer, String> utilityHostNames = new HashMap<>();
+
+			int tempPort = 32006;
+			for (int port : utilityPorts) {
+				utilityHostNames.put(tempPort, ("utility") + (tempPort - 32005));
+				tempPort++;
+			}
 
 			for (int[] chunk : chunks) {
 				if (utilityIndex >= availableServers.size()) {
@@ -260,8 +296,10 @@ public class Master implements Runnable {
 				}
 				int port = availableServers.get(utilityIndex++);
 
+				String hostname = utilityHostNames.get(port);
+
 				try {
-					Socket s = new Socket("localhost", port);
+					Socket s = new Socket(hostname, port);
 					ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 					ObjectInputStream in = new ObjectInputStream(s.getInputStream());
 

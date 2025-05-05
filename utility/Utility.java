@@ -140,12 +140,13 @@ public class Utility extends Thread {
 	private static void sumSortedData(int[] data) { // Adds the first and last 5 entries of the sorted data
 		sum = 0;
 		int length = data.length;
-		for (int i = 0; i < 5; i++) { // Sum the first 5 entries
-			if (i < length) {
-				sum += data[i];
-			}
+
+		int overLapStart = Math.max(0, length - 5);
+
+		for (int i = 0; i < Math.min(5, overLapStart); i++) { // Sum the first 5 entries
+			sum += data[i];
 		}
-		for (int i = length - 5; i < length; i++) { // Sum the last 5 entries
+		for (int i = overLapStart; i < length; i++) { // Sum the last 5 entries
 			sum += data[i];
 		}
 	}

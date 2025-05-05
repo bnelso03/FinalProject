@@ -1,7 +1,5 @@
 version: "3.9"
-
 services:
-
   master:
     build:
       context: .
@@ -12,7 +10,8 @@ services:
       - utility1
       - utility2
       - utility3
-
+    networks:
+      - sorting_network
   utility1:
     build:
       context: .
@@ -21,7 +20,9 @@ services:
       - PORT=32006
     ports:
       - "32006:32006"
-
+    networks:
+      - sorting_network
+    command: ["32006"]
   utility2:
     build:
       context: .
@@ -30,7 +31,9 @@ services:
       - PORT=32007
     ports:
       - "32007:32007"
-
+    networks:
+      - sorting_network
+    command: ["32007"]
   utility3:
     build:
       context: .
@@ -39,7 +42,9 @@ services:
       - PORT=32008
     ports:
       - "32008:32008"
-
+    networks:
+      - sorting_network
+    command: ["32008"]
   client:
     build:
       context: .
@@ -50,3 +55,9 @@ services:
     tty: true
     volumes:
       - ./data:/data
+    networks:
+      - sorting_network
+
+networks:
+  sorting_network:
+    driver: bridge

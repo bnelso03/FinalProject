@@ -16,14 +16,17 @@ public class Client {
      * and then receives the final summed result.
      * 
      *******************************/
-    public static void main(String args[]) throws ClassNotFoundException {
+    public static void main(String args[]) throws ClassNotFoundException, InterruptedException {
         File file = new File(args[0]); // Input file
         String sort = args[1];
-        String host = "localhost"; 
+        String host = "master"; 
         int port = 32005;
 
         try{
-            // Create a new socket
+            System.out.println("[CLIENT] Waiting for master to be ready...");
+            Thread.sleep(2000); // just so the master has time to boot
+
+            System.out.println("[CLIENT] Attempting to connec to " + host + ":" + port);
             Socket socket = new Socket(host, port);
             System.out.println("[CLIENT] Connected to master!");
 
@@ -36,7 +39,15 @@ public class Client {
 
             // Retreive result from master
             ObjectInputStream result = new ObjectInputStream(socket.getInputStream());
-            System.out.println("[CLIENT] Total sum: " + (int) result.readObject());
+            Object response = result.readObject();
+
+            if (response instanceof String) {
+                System.out.println("[CLIENT] Error from master: " + response);
+            } else {
+                System.out.println("[CLIENT] Total sum: " + (int) response);
+            }
+
+            socket.close();
 
         } catch(IOException ex){
             ex.printStackTrace();

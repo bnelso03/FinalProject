@@ -10,8 +10,10 @@ import java.util.HashMap;
 /*************************
  * 
  * Just waits for tasks from the Master server and responds to heart beats.
- * When a chunk is received, it locks itself and uses (right now) an assigned algorithm.
- * It sums the first & last five numbers after sorting and then sends it back to the Master.
+ * When a chunk is received, it locks itself and uses (right now) an assigned
+ * algorithm.
+ * It sums the first & last five numbers after sorting and then sends it back to
+ * the Master.
  * 
  ************************/
 public class Utility extends Thread {
@@ -30,7 +32,6 @@ public class Utility extends Thread {
 		ServerSocket utilityServer = new ServerSocket(PORT);
 		System.out.println("Utility Server Starting...");
 		state = "AVAILABLE";
-		
 
 		while (true) {
 			try {
@@ -76,6 +77,7 @@ public class Utility extends Thread {
 
 			HashMap<String, Object> packet = (HashMap<String, Object>) obj;
 			Object dataObj = packet.get("data");
+			sort = (String) packet.get("sort");
 
 			if (dataObj instanceof int[]) {
 				int[] incomingData = (int[]) dataObj;
@@ -104,7 +106,8 @@ public class Utility extends Thread {
 
 	private static void runTask() {
 		try {
-			// I'd recommend you DO NOT uncomment this unless you're specifically testing for it. It makes things take FOREVER, but the problem set asks for it.
+			// I'd recommend you DO NOT uncomment this unless you're specifically testing
+			// for it. It makes things take FOREVER, but the problem set asks for it.
 			// Thread.sleep(15000); // 15 sec delay
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -129,10 +132,11 @@ public class Utility extends Thread {
 				insertionSort(result);
 				break;
 			case "merge":
-				int left = result[0];
-				int right = result[result.length - 1];
-				mergeSort(result, left, right);
+				mergeSort(result, 0, result.length - 1);
 				break;
+			default:
+				System.out.println("[Utility] Unknown sort type: " + sort + ", defaulting to bubble");
+				bubbleSort(result);
 		}
 		return result;
 	}
@@ -140,12 +144,10 @@ public class Utility extends Thread {
 	private static void sumSortedData(int[] data) { // Adds the first and last 5 entries of the sorted data
 		sum = 0;
 		int length = data.length;
-		for (int i = 0; i < 5; i++) { // Sum the first 5 entries
-			if (i < length) {
-				sum += data[i];
-			}
+		for (int i = 0; i < Math.min(5, length); i++) { // Sum the first 5 entries
+			sum += data[i];
 		}
-		for (int i = length - 5; i < length; i++) { // Sum the last 5 entries
+		for (int i = Math.max(0, length - 5); i < length; i++) { // Sum the last 5 entries
 			sum += data[i];
 		}
 	}
@@ -154,9 +156,11 @@ public class Utility extends Thread {
 		int length = data.length;
 		for (int i = 0; i < length - 1; i++) {
 			for (int j = 0; j < length - i - 1; j++) {
-				int temp = data[j];
-				data[j] = data[j + 1];
-				data[j + 1] = temp;
+				if (data[j] > data[j + 1]) {
+					int temp = data[j];
+					data[j] = data[j + 1];
+					data[j + 1] = temp;
+				}
 			}
 		}
 	}
