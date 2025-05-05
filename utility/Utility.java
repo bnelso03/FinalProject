@@ -1,6 +1,8 @@
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -24,6 +26,8 @@ public class Utility extends Thread {
 	private static PrintWriter log;
 
 	public static void main(String[] args) throws IOException {
+		log = new PrintWriter(new FileOutputStream("log.txt", true), true);
+		
 
 		PORT = Integer.parseInt(args[0]);
 
@@ -55,7 +59,7 @@ public class Utility extends Thread {
 
 	private static void handleConnection(Socket socket) {
 		try {
-			System.out.println("[Utility] Connection accepted from " + socket.getInetAddress());
+			log.println("[Utility] Connection accepted from " + socket.getInetAddress());
 
 			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -72,7 +76,7 @@ public class Utility extends Thread {
 				}
 			}
 
-			System.out.println("[Utility] Received task");
+			log.println("[Utility] Received task");
 
 			HashMap<String, Object> packet = (HashMap<String, Object>) obj;
 			Object dataObj = packet.get("data");
@@ -87,11 +91,11 @@ public class Utility extends Thread {
 			}
 
 			state = "LOCKED";
-			System.out.println("[Utility] Running task...");
+			log.println("[Utility] Running task...");
 
 			runTask();
 
-			System.out.println("[Utility] Task complete. Sending sum back.");
+			log.println("[Utility] Task complete. Sending sum back.");
 
 			out.writeObject(sum);
 			out.flush();

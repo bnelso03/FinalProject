@@ -3,6 +3,7 @@ import java.net.*;
 import java.util.*;
 
 public class Client {
+    private static PrintWriter log;
 
     public Client(Socket client) throws IOException {
 
@@ -16,17 +17,33 @@ public class Client {
      * and then receives the final summed result.
      * 
      *******************************/
-    public static void main(String args[]) throws ClassNotFoundException, InterruptedException {
+    public static void main(String args[]) throws FileNotFoundException, ClassNotFoundException, InterruptedException {
+
+        if (args.length < 2) {                               
+            Scanner sc = new Scanner(System.in);             
+            System.out.print("Path to data file: ");         
+            String filePath = sc.nextLine().trim();          
+            System.out.print("Sorting algorithm: ");         
+            String sortAlg = sc.nextLine().trim();           
+            sc.close();                                      
+            args = new String[]{filePath, sortAlg};          
+        }                                                    
+
         File file = new File(args[0]); // Input file
         String sort = args[1];
         String host = "master"; 
         int port = 32005;
+        log = new PrintWriter(new FileOutputStream("log.txt", true), true);
+		
+
 
         try{
             System.out.println("[CLIENT] Waiting for master to be ready...");
+            log.println("[CLIENT] Waiting for master to be ready...");
             Thread.sleep(2000); // just so the master has time to boot
 
             System.out.println("[CLIENT] Attempting to connec to " + host + ":" + port);
+            log.println("[CLIENT] Attempting to connec to " + host + ":" + port); 
             Socket socket = new Socket(host, port);
             System.out.println("[CLIENT] Connected to master!");
 

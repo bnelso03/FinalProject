@@ -2,4 +2,4 @@ FROM openjdk:17
 WORKDIR /app
 COPY client/Client.java .
 RUN javac Client.java
-CMD ["java", "Client", "/data/input.txt", "bubble"]
+CMD ["java", "Client"]
