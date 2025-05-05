@@ -1,0 +1,130 @@
+\documentclass{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{fancyhdr}
+\usepackage[letterpaper, margin=1.2in]{geometry}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{longtable}
+\pagestyle{fancy}
+
+%----------------------------------------
+%   Header
+%----------------------------------------
+\lhead{CS 3003}
+\chead{Distributed Sort and Aggregation System}
+\rhead{Gerry C, Andrew D, Brayden N}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Distributed Sort and Aggregation System}\\ \large Final Project -- Spring 2025}
+\author{Gerry C \and Andrew D \and Brayden N}
+\date{Due 5 May 2025}
+
+%----------------------------------------
+\begin{document}
+	\maketitle
+	\thispagestyle{empty}
+	
+	\begin{abstract}
+		Our task was to design, develop, and deploy a containerized sorting and aggregation distributed system that incorporated the main topics we covered over the span of the course. This document will outline our project's design and highlight key implementations and information.
+	\end{abstract}
+	
+	\tableofcontents
+	\newpage
+	
+	%=====================================================================
+	\section{Project Overview}
+	The project specifies a few concrete tasks to implement and complete. We can break these into the following functional requirements:
+	\begin{enumerate}
+		\item \textbf{Client, Master, Utility Implementation} – Each server runs in its own container. Using TCP sockets, the client connects to the master, which in turn accepts all concurrent utility server connections.
+		\item \textbf{Heartbeat Protocol} – The master server uses a heartbeat protocol that is invoked whenever it receives a client request.
+		\item \textbf{Utility Server Locking Mechanism} – Each utility server maintains one of two states: AVAILABLE (idle) or LOCKED (busy). These states help the master decide task allocation.
+		\item \textbf{Sorting and Aggregation} – Utility servers sort and sum data, and the master server performs the final aggregation.
+		\item \textbf{Logging \& Containerisation} – Every operation is recorded and timed as each server runs in its own container, providing valuable context.
+	\end{enumerate}
+	
+	%=====================================================================
+	\section{System Design}
+	\begin{enumerate}
+		\item \textbf{Client Application} – The client retrieves the user's desired task, sends it to the master server, and displays the result. We use \texttt{HashMap} objects to structure the data packets sent via \texttt{ObjectOutputStream}.
+		
+		\item \textbf{Master Server} – The master server coordinates tasks between clients and utilities. It manages state tables for utilities, handles heartbeat checks, and performs aggregation on sorted data received from utilities.
+		
+		\item \textbf{Utility Server} – Utility servers handle sorting and computation tasks. Each server responds to heartbeat checks and maintains internal locking to prevent task conflicts.
+	\end{enumerate}
+	
+	%=====================================================================
+	\section{Algorithms Used}    
+	\subsection{Heartbeat Protocol}
+	The heartbeat protocol works as follows: The master server sends a message through a new \texttt{ObjectOutputStream}, and utility servers respond with their current state: AVAILABLE or LOCKED. The master then records this data to determine server availability.
+	
+	\subsection{Utility Locking}
+	Each utility server is equipped with a \texttt{handleConnection} method that manages incoming connections and determines whether the server should remain locked or become available, based on current processing status.
+	
+	\subsection{Sorting Algorithms (Pseudocode)}
+	
+	\paragraph{Bubble Sort}
+	\begin{algorithm}[H]
+		\caption{BubbleSort($A$)}
+		\begin{algorithmic}[1]
+			\For{$i \gets 0$ to $n-2$}
+			\For{$j \gets 0$ to $n-i-2$}
+			\If{$A_j > A_{j+1}$}
+			\State swap $A_j, A_{j+1}$
+			\EndIf
+			\EndFor
+			\EndFor
+		\end{algorithmic}
+	\end{algorithm}
+	
+	\paragraph{Insertion Sort}
+	\begin{algorithm}[H]
+		\caption{InsertionSort($A$)}
+		\begin{algorithmic}[1]
+			\For{$i \gets 1$ to $n-1$}
+			\State key $\gets A_i$; $j \gets i - 1$
+			\While{$j \ge 0 \land A_j > \text{key}$}
+			\State $A_{j+1} \gets A_j$; $j--$
+			\EndWhile
+			\State $A_{j+1} \gets \text{key}$
+			\EndFor
+		\end{algorithmic}
+	\end{algorithm}
+	
+	\paragraph{Merge Sort}
+	\begin{algorithm}[H]
+		\caption{MergeSort($A, \ell, r$)}
+		\begin{algorithmic}[1]
+			\If{$\ell < r$}
+			\State $m \gets (\ell + r)/2$
+			\State \Call{MergeSort}{$A, \ell, m$}
+			\State \Call{MergeSort}{$A, m+1, r$}
+			\State \Call{Merge}{$A, \ell, m, r$}
+			\EndIf
+		\end{algorithmic}
+	\end{algorithm}
+	
+	%=====================================================================
+	\section{Containerisation \& Deployment}
+	Dockerfiles encapsulate the JDK 17 runtime and establish our ports. A \texttt{docker-compose.yml} file spawns one master and an arbitrary number of utilities on a custom bridge network so that our heartbeats can reach all containers.
+	\begin{lstlisting}[language=bash, basicstyle=\ttfamily\footnotesize]
+		docker compose up
+		docker-compose run client /data/input.txt {sort}
+	\end{lstlisting}
+	
+	%=====================================================================
+	\section{Logging Strategy}
+	All components write logs to a shared volume?
+	
+	%=====================================================================
+	\section{Team Contributions}
+	\begin{longtable}{p{0.25\textwidth}p{0.7\textwidth}}
+		Gerry C & stuff goes here\\
+		Andrew D & stuff goes here\\
+		Brayden N & stuff goes here\\
+	\end{longtable}
+	
+\end{document}
